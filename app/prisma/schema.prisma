@@ -45,32 +45,43 @@ model c_acta_entre_producto {
 }
 
 model c_agenda_minuta {
-  id                Int      @id @default(autoincrement())
-  cliente_id        Int
-  corpo_id          Int
-  puesto_id         Int
-  numero            Int
-  titulo            String   @db.VarChar(255)
-  fecha             DateTime @db.Date
-  hora_inicio       DateTime @db.Time(0)
-  hora_fin          DateTime @db.Time(0)
-  autor             String   @db.LongText
-  participantes     String   @db.LongText
-  acuerdos          String   @db.LongText
-  observaciones     String   @db.LongText
-  firma_responsable String   @db.LongText
-  created_at        DateTime @default(now())
-  created_by        String
-  temas_a_tratar    String?  @db.LongText
-  empresa_id        Int      @default(0)
-  division_id       Int      @default(0)
-  contrato_id       Int      @default(0)
-  isActive          Boolean  @default(true)
-  estado            Boolean  @default(false)
+  id                       Int                        @id @default(autoincrement())
+  cliente_id               Int
+  corpo_id                 Int
+  puesto_id                Int
+  numero                   Int
+  titulo                   String                     @db.VarChar(255)
+  fecha                    DateTime                   @db.Date
+  hora_inicio              DateTime                   @db.Time(0)
+  hora_fin                 DateTime                   @db.Time(0)
+  autor                    String                     @db.LongText
+  participantes            String                     @db.LongText
+  acuerdos                 String                     @db.LongText
+  observaciones            String                     @db.LongText
+  firma_responsable        String                     @db.LongText
+  created_at               DateTime                   @default(now())
+  created_by               String
+  temas_a_tratar           String?                    @db.LongText
+  empresa_id               Int                        @default(0)
+  division_id              Int                        @default(0)
+  contrato_id              Int                        @default(0)
+  isActive                 Boolean                    @default(true)
+  estado                   Boolean                    @default(false)
+  c_imagenes_agenda_minuta c_imagenes_agenda_minuta[]
 
   @@index([cliente_id], map: "c_agenda_minuta_cliente_id_fkey")
   @@index([corpo_id], map: "c_agenda_minuta_corpo_id_fkey")
   @@index([puesto_id], map: "c_agenda_minuta_puesto_id_fkey")
+}
+
+model c_imagenes_agenda_minuta {
+  id              Int             @id @default(autoincrement())
+  name            String          @db.LongText
+  agenda_id       Int
+  original_name   String          @db.LongText
+  c_agenda_minuta c_agenda_minuta @relation(fields: [agenda_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_agenda_minuta")
+
+  @@index([agenda_id], map: "c_imagenes_agenda_minuta_id_fkey")
 }
 
 model c_anexos_quejas {
@@ -1158,6 +1169,7 @@ model e_registro_personas {
   contrato_id          Int
   isActive             Boolean              @default(true)
   firma_visitante      String?              @db.LongText
+  puesto_salida_id     Int?
   e_activo_visitante   e_activo_visitante[]
 
   @@index([responsable_id], map: "FK_BB503B25992BE730")
@@ -1188,6 +1200,7 @@ model e_registro_vehiculos {
   division_id         Int       @default(0)
   contrato_id         Int       @default(0)
   isActive            Boolean   @default(true)
+  puesto_salida_id    Int?
 
   @@index([responsable_id], map: "FK_BB503B25952BE730")
   @@index([cliente_id], map: "FK_BB503B25953BE730")
@@ -1519,4 +1532,15 @@ model e_reportes_puesto_list {
 
   @@index([reporte_id], map: "fk_reporte")
   @@index([reporte_puesto_id], map: "fk_reporte_puesto")
+}
+
+model error_logs {
+  id          Int      @id @default(autoincrement())
+  endpoint    String   @db.VarChar(255)
+  method      String   @db.VarChar(10)
+  status_code Int?
+  message     String   @db.LongText
+  stack       String?  @db.LongText
+  user_id     Int?
+  created_at  DateTime @default(now()) @db.DateTime(0)
 }
