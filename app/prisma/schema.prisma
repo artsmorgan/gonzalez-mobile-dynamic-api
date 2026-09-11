@@ -1550,3 +1550,13 @@ model n_manual_classification {
   id     Int    @id @default(autoincrement())
   nombre String @db.LongText
 }
+
+model n_reportes_control_versiones {
+  id                   Int      @id @default(autoincrement())
+  report_original_name String   @db.LongText
+  module               String   @db.VarChar(100)
+  title                String   @db.VarChar(50)
+  version              Int
+  approve_date         DateTime @db.Date
+  department           String   @db.LongText
+}
