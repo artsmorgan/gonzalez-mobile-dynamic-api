@@ -910,6 +910,7 @@ model e_empleado_visualizacion_manual_puesto {
   manual_puesto_id                  Int
   nombre_empleado                   String                              @db.LongText
   firma_empleado                    String                              @db.LongText
+  firma_empleado_manual             String?                             @db.LongText
   created_at                        DateTime                            @db.DateTime(0)
   quiz_answear                      String?                             @db.LongText
   updated_at                        DateTime                            @db.DateTime(0)
@@ -997,6 +998,7 @@ model e_manual_puesto {
   isActive                               Boolean                                  @default(false)
   e_archivos_manual_puesto               e_archivos_manual_puesto[]
   e_empleado_visualizacion_manual_puesto e_empleado_visualizacion_manual_puesto[]
+  e_empleados_manual_puesto              e_empleados_manual_puesto[]
   e_puestos_manual_puesto                e_puestos_manual_puesto[]
 }
 
@@ -1552,11 +1554,21 @@ model n_manual_classification {
 }
 
 model n_reportes_control_versiones {
-  id                   Int      @id @default(autoincrement())
-  report_original_name String   @db.LongText
-  module               String   @db.VarChar(100)
-  title                String   @db.VarChar(50)
-  version              Int
-  approve_date         DateTime @db.Date
-  department           String   @db.LongText
+  id                   Int       @id @default(autoincrement())
+  report_original_name String    @db.LongText
+  module               String    @db.VarChar(100)
+  title                String?   @db.VarChar(50)
+  version              Int?
+  approve_date         DateTime? @db.Date
+  department           String?   @db.LongText
+}
+
+model e_empleados_manual_puesto {
+  id               Int             @id @default(autoincrement())
+  manual_puesto_id Int
+  empleado_id      Int
+  e_manual_puesto  e_manual_puesto @relation(fields: [manual_puesto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([empleado_id], map: "e_empleados_manual_puesto_empleado_id_fkey")
+  @@index([manual_puesto_id], map: "e_empleados_manual_puesto_manual_puesto_id_fkey")
 }
