@@ -628,15 +628,15 @@ model c_producto_no_conforme {
   id                              Int                               @id @default(autoincrement())
   cliente_id                      Int
   corpo_id                        Int
-  fecha_identificacion            DateTime                          @db.Date
-  responsable_cuenta              String                            @db.VarChar(50)
-  tipo_servicio_no_conforme       String                            @db.VarChar(50)
-  persona_identifico_pnc          String                            @db.VarChar(255)
-  descripcion                     String                            @db.LongText
-  persona_origino_pnc             String                            @db.VarChar(255)
-  accion_implementada             String                            @db.LongText
-  fecha_solucion                  DateTime                          @db.Date
-  responsable_aprobar             String                            @db.LongText
+  fecha_identificacion            DateTime?                         @db.Date
+  responsable_cuenta              String?                           @db.VarChar(50)
+  tipo_servicio_no_conforme       String?                           @db.VarChar(50)
+  persona_identifico_pnc          String?                           @db.VarChar(255)
+  descripcion                     String?                           @db.LongText
+  persona_origino_pnc             String?                           @db.VarChar(255)
+  accion_implementada             String?                           @db.LongText
+  fecha_solucion                  DateTime?                         @db.Date
+  responsable_aprobar             String?                           @db.LongText
   created_at                      DateTime                          @default(now())
   created_by                      String
   firma_persona_identifico_pnc    String?                           @db.LongText
@@ -1272,6 +1272,7 @@ model e_actividades {
   nombre_actividad      String                 @db.VarChar(255)
   fecha_inicio          DateTime               @db.Date
   frecuencia            String                 @db.LongText
+  tipo_turno            String?                @default(dbgenerated("(_utf8mb4\\'D\\')")) @db.VarChar(10)
   es_revision_equipo    Boolean
   descripcion_actividad String                 @db.LongText
   firma_responsable     String                 @db.LongText

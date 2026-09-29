@@ -1,4 +1,6 @@
 import fs from "fs/promises";
+import fsSync from "fs";
+import type { Readable } from "stream";
 import {
     DeleteObjectCommand,
     GetObjectCommand,
@@ -124,6 +126,47 @@ export async function getUploadObject(relativePath: string): Promise<Buffer> {
     }
 }
 
+export type UploadObjectStream = {
+    stream: Readable;
+    contentLength?: number;
+    contentType?: string;
+};
+
+/**
+ * Variante en streaming de `getUploadObject`, para archivos grandes (p. ej. instaladores .apk): evita
+ * materializar el objeto completo en memoria del servidor antes de poder reenviarlo, lo que en archivos
+ * de decenas/cientos de MB agrega latencia suficiente para que el cliente móvil agote su timeout de red
+ * esperando el primer byte.
+ */
+export async function getUploadObjectStream(relativePath: string): Promise<UploadObjectStream> {
+    const key = toObjectKey(relativePath);
+
+    try {
+        const response = await getS3Client().send(
+            new GetObjectCommand({
+                Bucket: getBucketName(),
+                Key: key,
+            }),
+        );
+        if (!response.Body) {
+            throw new Error("Respuesta vacía del almacenamiento");
+        }
+        return {
+            stream: response.Body as Readable,
+            contentLength: response.ContentLength,
+            contentType: response.ContentType,
+        };
+    } catch (error: unknown) {
+        const status = (error as { $metadata?: { httpStatusCode?: number }; name?: string })?.$metadata
+            ?.httpStatusCode;
+        const name = (error as { name?: string })?.name;
+        if (status === 404 || name === "NotFound" || name === "NoSuchKey") {
+            return getLocalUploadStreamFallback(relativePath);
+        }
+        throw error;
+    }
+}
+
 export async function deleteUploadObject(relativePath: string): Promise<void> {
     const key = toObjectKey(relativePath);
 
@@ -151,6 +194,20 @@ async function getLocalUploadFallback(relativePath: string): Promise<Buffer> {
     const localPath = getLocalUploadAbsolutePath(relativePath);
     try {
         return await fs.readFile(localPath);
+    } catch (error: unknown) {
+        const code = (error as NodeJS.ErrnoException)?.code;
+        if (code === "ENOENT") {
+            throw new Error("Archivo no encontrado");
+        }
+        throw error;
+    }
+}
+
+async function getLocalUploadStreamFallback(relativePath: string): Promise<UploadObjectStream> {
+    const localPath = getLocalUploadAbsolutePath(relativePath);
+    try {
+        const stat = await fs.stat(localPath);
+        return { stream: fsSync.createReadStream(localPath), contentLength: stat.size };
     } catch (error: unknown) {
         const code = (error as NodeJS.ErrnoException)?.code;
         if (code === "ENOENT") {

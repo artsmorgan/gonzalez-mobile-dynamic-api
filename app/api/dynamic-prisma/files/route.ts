@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
+import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import {
     deleteUploadObject,
     getUploadObject,
+    getUploadObjectStream,
     putUploadObject,
     uploadExistsAnywhere,
 } from "../../../../utils/s3UploadsStorage";
 import { normalizeUploadRelativePath, toUploadApiUrl } from "../../../../utils/uploadPath";
 import { parseBoolean, validateDynamicFilesAccess } from "../../../../utils/dynamicFilesAccess";
-import { buildBinaryFileResponse } from "../../../../utils/fileDownloadResponse";
+import { buildAttachmentContentDisposition } from "../../../../utils/fileDownloadResponse";
 
 export const runtime = "nodejs";
 
@@ -245,12 +247,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ status: false, message: "Archivo no encontrado" }, { status: 404 });
         }
 
-        const fileBuffer = await getUploadObject(relativePath);
         const ext = path.extname(relativePath).toLowerCase().replace(".", "");
         const contentType = MIME_BY_EXT[ext] || defaultMimeByKind(type) || "application/octet-stream";
         const fileName = safeBasename(path.basename(relativePath)) || "archivo";
 
         if (type === "text" && !forceDownload) {
+            const fileBuffer = await getUploadObject(relativePath);
             return new NextResponse(fileBuffer.toString("utf8"), {
                 status: 200,
                 headers: {
@@ -262,7 +264,26 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        return buildBinaryFileResponse(fileBuffer, contentType, fileName, forceDownload);
+        // Streaming: evita materializar el archivo completo en memoria antes de responder. Con
+        // archivos grandes (p. ej. instaladores .apk) el buffer completo en memoria agrega suficiente
+        // latencia como para que el cliente móvil agote su timeout de red esperando el primer byte.
+        const { stream, contentLength } = await getUploadObjectStream(relativePath);
+        const headers: Record<string, string> = {
+            "Content-Type": contentType,
+            "Cache-Control": forceDownload ? "private, no-store" : "public, max-age=31536000",
+            "X-Content-Type-Options": "nosniff",
+        };
+        if (contentLength != null) {
+            headers["Content-Length"] = String(contentLength);
+        }
+        if (forceDownload) {
+            headers["Content-Disposition"] = buildAttachmentContentDisposition(fileName);
+        }
+
+        return new NextResponse(Readable.toWeb(stream) as ReadableStream<Uint8Array>, {
+            status: 200,
+            headers,
+        });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Error desconocido";
         console.error("Error in GET /api/dynamic-prisma/files:", errorMessage);
