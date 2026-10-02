@@ -79,10 +79,16 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        const firmaManual = await prisma.c_empleado_firma_digital.findFirst({
+            where: {
+                empleado_id: empleadoId,
+            },
+        });
+
         return NextResponse.json(
             {
                 status: true,
-                firmaManual: body.firmaManualFallback ?? null,
+                firmaManual: firmaManual?.firma_digital ?? null,
                 isSuperAdmin,
             },
             { status: 200 },
