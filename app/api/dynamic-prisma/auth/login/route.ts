@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 status: true,
-                firmaManual: firmaManual?.firma_digital ?? null,
+                firmaManual: firmaManual?.firma ?? null,
                 isSuperAdmin,
             },
             { status: 200 },
