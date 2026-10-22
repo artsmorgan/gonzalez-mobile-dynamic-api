@@ -45,7 +45,10 @@ model c_acta_entre_producto {
   created_by                               Int?
   updated_at                               DateTime?               @db.DateTime(0)
   updated_by                               Int?
+  consecutivo                              Int?
   c_imagenes_acta_entrega_producto c_imagenes_acta_entrega_producto[]
+
+  @@unique([empresa_id, consecutivo], map: "uq_acta_entre_producto_empresa_consecutivo")
 }
 
 model c_agenda_minuta {
@@ -745,6 +748,7 @@ model c_registro_induccion_recorrido {
   plaza_id                            Int
   fecha                               DateTime                              @default(now())
   renglon_edificio                    String
+  tipo_capacitacion                   String?                               @db.VarChar(20)
   supervisor_cliente                  String?
   supervisor_corporacion              String
   temas_desarrollados                 String                                @db.LongText
@@ -841,6 +845,10 @@ model c_vehiculos_corporativos {
   marca                                  String                                   @db.VarChar(52)
   updated_at                               DateTime?               @db.DateTime(0)
   updated_by                               Int?
+  vin                                    String?                                  @db.VarChar(40)
+  titulo_propiedad_num                   String?                                  @db.VarChar(100)
+  rtv_num                                String?                                  @db.VarChar(100)
+  marchamo_num                           String?                                  @db.VarChar(100)
   c_imagenes_vehiculos_corporativos      c_imagenes_vehiculos_corporativos[]
   c_mantenimiento_vehiculos_corporativos c_mantenimiento_vehiculos_corporativos[]
   c_usos_vehiculos_corporativos          c_usos_vehiculos_corporativos[]
@@ -871,6 +879,9 @@ model e_archivos_manual_puesto {
   extension        String          @db.VarChar(25)
   manual_puesto_id Int
   original_name    String          @db.LongText
+  version             Int          @default(1)
+  retirado_en_version Int?
+  sha256              String?      @db.VarChar(64)
   e_manual_puesto  e_manual_puesto @relation(fields: [manual_puesto_id], references: [id], onDelete: Cascade)
 
   @@index([manual_puesto_id], map: "e_archivos_manual_puesto_manual_puesto_id_fkey")
@@ -958,6 +969,14 @@ model e_empleado_visualizacion_manual_puesto {
   quiz_answear                      String?                             @db.LongText
   updated_at                        DateTime                            @db.DateTime(0)
   approved                          Boolean?
+  version                           Int                                 @default(1)
+  sello_version                     String?                             @db.VarChar(64)
+  nota                              Float?
+  nota_puntos                       Float?
+  nota_total                        Float?
+  nota_minimo                       Float?
+  nota_fecha                        DateTime?                           @db.DateTime(0)
+  nota_calificado_por               Int?
   e_empleado_visualizacion_archivos e_empleado_visualizacion_archivos[]
   e_manual_puesto                   e_manual_puesto                     @relation(fields: [manual_puesto_id], references: [id], onDelete: Cascade)
 
@@ -1045,6 +1064,11 @@ model e_manual_puesto {
   contrato_id                            Int
   corpo_id                               Int
   isActive                               Boolean                                  @default(false)
+  version                                Int                                      @default(1)
+  externo_documento_id                   String?                                  @unique(map: "uq_e_manual_puesto_externo_documento") @db.VarChar(64)
+  externo_version_id                     String?                                  @db.VarChar(64)
+  sello                                  String?                                  @db.VarChar(64)
+  archivo_sha256                         String?                                  @db.VarChar(64)
   e_archivos_manual_puesto               e_archivos_manual_puesto[]
   e_empleado_visualizacion_manual_puesto e_empleado_visualizacion_manual_puesto[]
   e_empleados_manual_puesto              e_empleados_manual_puesto[]
@@ -1664,6 +1688,10 @@ model e_empleados_manual_puesto {
   id               Int             @id @default(autoincrement())
   manual_puesto_id Int
   empleado_id      Int
+  created_at       DateTime?       @db.DateTime(0)
+  entregado_en     DateTime?       @db.DateTime(0)
+  version          Int             @default(1)
+  origen           String?         @db.VarChar(20)
   e_manual_puesto  e_manual_puesto @relation(fields: [manual_puesto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([empleado_id], map: "e_empleados_manual_puesto_empleado_id_fkey")
@@ -1705,4 +1733,61 @@ model c_participantes_induccion_recorrido {
   c_registro_induccion_recorrido c_registro_induccion_recorrido @relation(fields: [registro_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([registro_id], map: "c_participantes_induccion_recorrido_registro_id_fkey")
+}
+
+model c_evidencia_registro {
+  id               Int      @id @default(autoincrement())
+  tabla            String   @db.VarChar(80)
+  registro_id      Int
+  accion           String   @db.VarChar(10)
+  dispositivo_id   String?  @db.VarChar(64)
+  latitud          String?  @db.VarChar(24)
+  longitud         String?  @db.VarChar(24)
+  ubicacion_origen String   @db.VarChar(12)
+  capturado_en     DateTime @db.DateTime(0)
+  cedula           String?  @db.VarChar(30)
+  usuario_id       Int?
+  sesion_id        String?  @db.VarChar(64)
+  firma            String   @db.VarChar(128)
+  sello            String?  @db.VarChar(64)
+  firma_version    Int      @db.SmallInt
+  firma_kid        String?  @db.VarChar(20)
+  creado           DateTime @db.DateTime(0)
+
+  @@index([tabla, registro_id], map: "c_evidencia_registro_tabla_registro_idx")
+  @@index([usuario_id], map: "c_evidencia_registro_usuario_idx")
+  @@index([dispositivo_id], map: "c_evidencia_registro_dispositivo_idx")
+}
+
+model e_manual_puesto_version {
+  id                 Int      @id @default(autoincrement())
+  manual_puesto_id   Int
+  version            Int
+  title              String   @db.LongText
+  description        String   @db.LongText
+  classification     String?  @db.LongText
+  quiz               String?  @db.LongText
+  externo_version_id String?  @db.VarChar(64)
+  sello              String?  @db.VarChar(64)
+  archivo_sha256     String?  @db.VarChar(64)
+  publicado_por      String?  @db.VarChar(190)
+  publicado_en       DateTime @db.DateTime(0)
+
+  @@unique([manual_puesto_id, version], map: "uq_e_manual_puesto_version")
+}
+
+model e_documento_asignacion {
+  id               Int       @id @default(autoincrement())
+  manual_puesto_id Int
+  externo_envio_id String?   @unique(map: "uq_e_documento_asignacion_externo") @db.VarChar(64)
+  audience         String    @db.VarChar(20)
+  scope            String?   @db.LongText
+  vigente          Boolean   @default(true)
+  solicitado_por   String?   @db.VarChar(190)
+  creado_en        DateTime  @db.DateTime(0)
+  terminado_en     DateTime? @db.DateTime(0)
+  terminado_por    String?   @db.VarChar(190)
+
+  @@index([manual_puesto_id], map: "e_documento_asignacion_manual_idx")
+  @@index([vigente], map: "e_documento_asignacion_vigente_idx")
 }

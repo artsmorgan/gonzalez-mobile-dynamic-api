@@ -6,6 +6,9 @@ import { verifyTokenFromBody } from "../../../utils/verifyTokenFromBody";
 
 type DynamicAction = "GET" | "POST" | "UPDATE" | "DELETE";
 
+/** Tablas de solo inserción y lectura: la evidencia de las acciones (issue #153) no se edita ni se borra. */
+const INSERT_ONLY_TABLES = new Set(["c_evidencia_registro"]);
+
 type DynamicPrismaPayload = {
     token?: string;
     mobileAccessToken?: string;
@@ -196,6 +199,13 @@ export async function POST(req: NextRequest) {
         }
 
         const action = actionRaw as DynamicAction;
+
+        if (INSERT_ONLY_TABLES.has(table) && action !== "GET" && action !== "POST") {
+            return NextResponse.json(
+                { status: false, message: `La tabla ${table} es de solo inserción: no admite ${action}.` },
+                { status: 403 }
+            );
+        }
         const bodyData = payload.body !== undefined ? payload.body : payload.data;
 
         if (action === "GET") {

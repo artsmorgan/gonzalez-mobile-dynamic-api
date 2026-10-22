@@ -72,6 +72,11 @@ WHERE TABLE_SCHEMA = DATABASE()
     ('e_actividades', 'created_by'),
     ('e_actividades', 'updated_at'),
     ('e_actividades', 'updated_by'),
+    ('c_acta_entre_producto', 'consecutivo'),
+    ('c_vehiculos_corporativos', 'vin'),
+    ('c_vehiculos_corporativos', 'titulo_propiedad_num'),
+    ('c_vehiculos_corporativos', 'rtv_num'),
+    ('c_vehiculos_corporativos', 'marchamo_num'),
     ('c_acta_entre_producto', 'created_at'),
     ('c_acta_entre_producto', 'created_by'),
     ('c_acta_entre_producto', 'updated_at'),
@@ -166,3 +171,32 @@ SELECT t.n AS tabla_que_falta FROM (
 ) t
 LEFT JOIN information_schema.TABLES x ON x.TABLE_SCHEMA = DATABASE() AND x.TABLE_NAME = t.n
 WHERE x.TABLE_NAME IS NULL;
+
+-- Tablas que las migraciones CREAN y que YA existen en la base (el resultado debe estar vacío; si no, el CREATE TABLE fallaría).
+SELECT TABLE_NAME AS tabla_que_ya_existe
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN ('c_evidencia_registro');
+
+-- Documentos (#154–#157): columnas que la migración 20261021140001 AGREGA y que ya existen (debe estar vacío) y tablas que CREA.
+SELECT TABLE_NAME, COLUMN_NAME
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND (TABLE_NAME, COLUMN_NAME) IN (
+    ('e_manual_puesto', 'version'), ('e_manual_puesto', 'externo_documento_id'), ('e_manual_puesto', 'externo_version_id'),
+    ('e_manual_puesto', 'sello'), ('e_manual_puesto', 'archivo_sha256'),
+    ('e_archivos_manual_puesto', 'version'), ('e_archivos_manual_puesto', 'retirado_en_version'), ('e_archivos_manual_puesto', 'sha256'),
+    ('e_empleado_visualizacion_manual_puesto', 'version'), ('e_empleado_visualizacion_manual_puesto', 'sello_version'),
+    ('e_empleado_visualizacion_manual_puesto', 'nota'), ('e_empleado_visualizacion_manual_puesto', 'nota_puntos'),
+    ('e_empleado_visualizacion_manual_puesto', 'nota_total'), ('e_empleado_visualizacion_manual_puesto', 'nota_minimo'),
+    ('e_empleado_visualizacion_manual_puesto', 'nota_fecha'), ('e_empleado_visualizacion_manual_puesto', 'nota_calificado_por'),
+    ('e_empleados_manual_puesto', 'created_at'), ('e_empleados_manual_puesto', 'entregado_en'), ('e_empleados_manual_puesto', 'version'), ('e_empleados_manual_puesto', 'origen')
+  );
+SELECT TABLE_NAME AS tabla_que_ya_existe FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('e_manual_puesto_version', 'e_documento_asignacion');
+
+-- Inducción y recorrido (#142): la migración 20261022120001 AGREGA tipo_capacitacion; si ya existe (resultado no vacío) el ALTER fallaría.
+SELECT TABLE_NAME, COLUMN_NAME
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'c_registro_induccion_recorrido' AND COLUMN_NAME = 'tipo_capacitacion';
