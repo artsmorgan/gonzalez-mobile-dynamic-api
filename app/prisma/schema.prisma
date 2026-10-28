@@ -1759,6 +1759,21 @@ model c_evidencia_registro {
   @@index([dispositivo_id], map: "c_evidencia_registro_dispositivo_idx")
 }
 
+model c_clave_idempotencia {
+  id          Int      @id @default(autoincrement())
+  clave_hash  String   @unique(map: "c_clave_idempotencia_clave_hash_key") @db.VarChar(64)
+  ambito      String   @db.VarChar(120)
+  recurso     String   @db.VarChar(80)
+  actor_id    Int?
+  estado      String   @db.VarChar(12)
+  http_status Int?     @db.SmallInt
+  respuesta   String?  @db.LongText
+  creado      DateTime @db.DateTime(0)
+  expira      DateTime @db.DateTime(0)
+
+  @@index([expira], map: "c_clave_idempotencia_expira_idx")
+}
+
 model e_manual_puesto_version {
   id                 Int      @id @default(autoincrement())
   manual_puesto_id   Int
