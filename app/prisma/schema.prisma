@@ -1383,6 +1383,18 @@ model e_actividades {
   corpo_id                                 Int?
   puesto_id                                Int?
   e_actividades_puesto  e_actividades_puesto[]
+  c_actividades_tipo_turno c_actividades_tipo_turno[]
+}
+
+/// Tipos de turno de una actividad (D, M, N): una fila por combinación actividad + tipo.
+model c_actividades_tipo_turno {
+  id            Int           @id @default(autoincrement())
+  actividad_id  Int
+  tipo_turno    String        @db.VarChar(1)
+  e_actividades e_actividades @relation(fields: [actividad_id], references: [id], onDelete: Cascade)
+
+  @@unique([actividad_id, tipo_turno], map: "c_actividades_tipo_turno_actividad_id_tipo_turno_key")
+  @@index([tipo_turno], map: "c_actividades_tipo_turno_tipo_turno_idx")
 }
 
 model e_actividades_puesto {
